@@ -3,7 +3,18 @@ import java.util.ArrayList;
 class Point{
   public float x, y;
   
-  // TODO implement equals method
+  public Point(float _x, float _y){
+    x = _x;
+    y = _y;
+  }
+  
+  @Override
+  public boolean equals(Object o){
+    if (o instanceof Point){
+      return (this.x == ((Point)o).x && this.y == ((Point)o).y);
+    }
+    return false;
+  }
 }
 
 class PointPair{
@@ -87,9 +98,16 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
 
 // Returns 1 if c is to the right of ab, 0 if c is on ab, -1 otherwise
 int sideCheck(Point a, Point b, Point c){
-  // We calculate the coefficient of i in the cross product, i.e., xa * by - ya * bx
+  
+  // We want the coefficient of i in the cross product of vectors ab and ac
   // (The other two coefficients should be zero, and the sign of this one gives the side)
-  float i_coefficient = a.x*b.y - a.y*b.x;
+  
+  // ab = [b.x - a.x, b.y - a.y]
+  // ac = [c.x - a.x, c.y - a.y]
+  
+  // we want ab.x * ac.y - ab.y * ac.x
+  
+  float i_coefficient = (b.x-a.x)*(c.y-a.y) - (b.y-a.y)(c.x-a.x);
   if (i_coefficient > 0){
     return 1;
   } else if (i_coefficient == 0){
