@@ -9,14 +9,7 @@ void setup(){
   noLoop();
   
   // generate input points (by hand for now)
-  points.add(new Point(100,10));
-  points.add(new Point(10,100));
-  points.add(new Point(10,10));
-  points.add(new Point(100,100));
-  points.add(new Point(50, 50));
-  points.add(new Point(200,200));
-  points.add(new Point(250, 200));
-  points.add(new Point(275, 200));
+  points = generatePoints(600, 600, 1000);
   
   // find hull points
   hull = naiveHull(points);
@@ -48,10 +41,6 @@ void draw(){
   
   hl = hull.get(0);
   line(last_hl.x, 600-last_hl.y, hl.x, 600-hl.y);
-}
-
-float scaleToScreen(){
-  return 0;
 }
 
 ArrayList<Point> naiveHull(ArrayList<Point> input_points){
@@ -101,10 +90,6 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
     }
   }
   
-  for (int i=0; i<hull_pairs.size(); i++){
-    System.out.println(hull_pairs.get(i).first + " " + hull_pairs.get(i).second); 
-  }
-  
   // Process hullpair to put in order, remove duplicates
   ArrayList<Point> hull = new ArrayList<Point>();
   hull.add(hull_pairs.get(0).first);
@@ -120,6 +105,14 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
   }
   
   return hull;
+}
+
+ArrayList<Point> generatePoints(float maxx, float maxy, int num_points){
+  ArrayList<Point> rtn = new ArrayList<Point>();
+  for (int i=0; i<num_points; i++){
+    rtn.add(new Point(random(maxx), random(maxy)));
+  }
+  return rtn;
 }
 
 // Returns 1 if c is to the right of ab, 0 if c is on ab, -1 otherwise
