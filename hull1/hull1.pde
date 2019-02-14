@@ -1,22 +1,65 @@
 import java.util.ArrayList;
 
+ArrayList<Point> points = new ArrayList<Point>();
+ArrayList<Point> hull = new ArrayList<Point>();
+
 void setup(){
+  surface.setSize(800,800);
+  background(255);
+  noLoop();
   
   // generate input points (by hand for now)
-  ArrayList<Point> points = new ArrayList<Point>();
-  points.add(new Point(1,0));
-  points.add(new Point(0,1));
-  points.add(new Point(0,0));
-  points.add(new Point(1,1));
+  points.add(new Point(100,10));
+  points.add(new Point(10,100));
+  points.add(new Point(10,10));
+  points.add(new Point(100,100));
+  points.add(new Point(50, 50));
+  points.add(new Point(200,200));
   
   // find hull points
-  ArrayList<Point> hull = naiveHull(points);
+  hull = naiveHull(points);
   for (int i=0; i<hull.size(); i++){
     System.out.println(hull.get(i)); 
   }
   
-  
-  
+  /*
+  // find leftmost, rightmost, highest, lowest coords for drawing
+  float minx = points.get(0).x;
+  float maxx = points.get(0).x;
+  float miny = points.get(0).y;
+  float maxy = points.get(0).y;
+  for (int i=0; i<points.size(); i++){
+    Point pt = points.get(i);
+    if (pt.x < minx){
+      minx = pt.x;
+    }
+    if (pt.x > maxx){
+      maxx = pt.x;
+    }
+    if (pt.y < miny){
+      miny = pt.y;
+    }
+    if (pt.y > maxy){
+      maxy = pt.y; 
+    }
+  }
+  */
+
+}
+
+void draw(){
+  for (int i=0; i<points.size(); i++){
+    stroke(0);
+    Point pt = points.get(i);
+    if (hull.contains(pt)){
+      stroke(255,0,0);
+    }
+    circle(pt.x, pt.y, 10);
+  }
+}
+
+float scaleToScreen(){
+  return 0;
 }
 
 ArrayList<Point> naiveHull(ArrayList<Point> input_points){
