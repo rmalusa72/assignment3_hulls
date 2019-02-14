@@ -32,14 +32,29 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
         // a, b will iterate through every pair of distinct points
         boolean onHull = true;
         
-        // TODO: deal with degenerate cases; discard any point that is on line maybe? 
         for (int k=0; k<input_points.size(); k++){
           if (k!=i && k!=j){
             c = input_points.get(k);
-            if (!isOnRight(a,b,c)){
+            
+            int side = sideCheck(a,b,c);
+            if (side == -1){
+              // c is to the left of ab
               onHull = false;
               break;
+            } else if (side == 0){
+              // c is on ab
+              // figure out which one is in the middle. if c isn't in the middle, pair is not valid
+              double ab_distance = distance(a,b);
+              double bc_distance = distance(b,c);
+              double ac_distance = distance(a,c);
+              
+              if (ab_distance < ac_distance || ab_distance < bc_distance){
+                onHull = false;
+                break;
+              }
+              
             }
+            
           }
         }
         
@@ -70,8 +85,20 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
   return hull;
 }
 
-// Returns true if c is to the right of ab, false otherwise
-boolean isOnRight(Point a, Point b, Point c){
-  // TODO implement this. and account for case where c is on ab
-  return true;
+// Returns 1 if c is to the right of ab, 0 if c is on ab, -1 otherwise
+int sideCheck(Point a, Point b, Point c){
+  // We calculate the coefficient of i in the cross product, i.e., xa * by - ya * bx
+  // (The other two coefficients should be zero, and the sign of this one gives the side)
+  float i_coefficient = a.x*b.y - a.y*b.x;
+  if (i_coefficient > 0){
+    return 1;
+  } else if (i_coefficient == 0){
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
+double distance(Point a, Point b){
+  return Math.pow((double)(a.x - b.x),2) + Math.pow((double)(a.y - b.y), 2);
 }
