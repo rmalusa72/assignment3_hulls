@@ -1,32 +1,21 @@
 import java.util.ArrayList;
 
-class Point{
-  public float x, y;
-  
-  public Point(float _x, float _y){
-    x = _x;
-    y = _y;
-  }
-  
-  @Override
-  public boolean equals(Object o){
-    if (o instanceof Point){
-      return (this.x == ((Point)o).x && this.y == ((Point)o).y);
-    }
-    return false;
-  }
-}
-
-class PointPair{
-  public Point first, second; 
-  
-  public PointPair(Point _first, Point _second){
-    first = _first;
-    second = _second;
-  }
-}
-
 void setup(){
+  
+  // generate input points (by hand for now)
+  ArrayList<Point> points = new ArrayList<Point>();
+  points.add(new Point(1,0));
+  points.add(new Point(0,1));
+  points.add(new Point(0,0));
+  points.add(new Point(1,1));
+  
+  // find hull points
+  ArrayList<Point> hull = naiveHull(points);
+  for (int i=0; i<hull.size(); i++){
+    System.out.println(hull.get(i)); 
+  }
+  
+  
   
 }
 
@@ -77,19 +66,21 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
     }
   }
   
+  for (int i=0; i<hull_pairs.size(); i++){
+    System.out.println(hull_pairs.get(i).first + " " + hull_pairs.get(i).second); 
+  }
+  
   // Process hullpair to put in order, remove duplicates
   ArrayList<Point> hull = new ArrayList<Point>();
   hull.add(hull_pairs.get(0).first);
   hull.add(hull_pairs.get(0).second);
   
-  for (int i=1; i<hull_pairs.size(); i++){
-    
-    PointPair pair = hull_pairs.get(i);
-    
-    // If first item of pair in question matches last item in list, 
-    // add the second item of the pair to the list
-    if (pair.first.equals(hull.get(hull.size()-1))){
-      hull.add(pair.second);
+  while (hull.size() < hull_pairs.size()){
+    Point hook = hull.get(hull.size()-1);
+    for (int i=0; i<hull_pairs.size(); i++){
+      if (hull_pairs.get(i).first.equals(hook)){
+        hull.add(hull_pairs.get(i).second);
+      }
     }
   }
   
@@ -107,7 +98,7 @@ int sideCheck(Point a, Point b, Point c){
   
   // we want ab.x * ac.y - ab.y * ac.x
   
-  float i_coefficient = (b.x-a.x)*(c.y-a.y) - (b.y-a.y)(c.x-a.x);
+  float i_coefficient = (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
   if (i_coefficient > 0){
     return 1;
   } else if (i_coefficient == 0){
@@ -119,4 +110,35 @@ int sideCheck(Point a, Point b, Point c){
 
 double distance(Point a, Point b){
   return Math.pow((double)(a.x - b.x),2) + Math.pow((double)(a.y - b.y), 2);
+}
+
+class Point{
+  public float x, y;
+  
+  public Point(float _x, float _y){
+    x = _x;
+    y = _y;
+  }
+  
+  @Override
+  public boolean equals(Object o){
+    if (o instanceof Point){
+      return (this.x == ((Point)o).x && this.y == ((Point)o).y);
+    }
+    return false;
+  }
+  
+  @Override
+  public String toString(){
+    return this.x + "," + this.y;
+  }
+}
+
+class PointPair{
+  public Point first, second; 
+  
+  public PointPair(Point _first, Point _second){
+    first = _first;
+    second = _second;
+  }
 }
