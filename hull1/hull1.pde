@@ -4,7 +4,7 @@ ArrayList<Point> points = new ArrayList<Point>();
 ArrayList<Point> hull = new ArrayList<Point>();
 
 void setup(){
-  surface.setSize(800,800);
+  surface.setSize(600,600);
   background(255);
   noLoop();
   
@@ -15,47 +15,39 @@ void setup(){
   points.add(new Point(100,100));
   points.add(new Point(50, 50));
   points.add(new Point(200,200));
+  points.add(new Point(250, 200));
+  points.add(new Point(275, 200));
   
   // find hull points
   hull = naiveHull(points);
   for (int i=0; i<hull.size(); i++){
     System.out.println(hull.get(i)); 
   }
-  
-  /*
-  // find leftmost, rightmost, highest, lowest coords for drawing
-  float minx = points.get(0).x;
-  float maxx = points.get(0).x;
-  float miny = points.get(0).y;
-  float maxy = points.get(0).y;
-  for (int i=0; i<points.size(); i++){
-    Point pt = points.get(i);
-    if (pt.x < minx){
-      minx = pt.x;
-    }
-    if (pt.x > maxx){
-      maxx = pt.x;
-    }
-    if (pt.y < miny){
-      miny = pt.y;
-    }
-    if (pt.y > maxy){
-      maxy = pt.y; 
-    }
-  }
-  */
 
 }
 
 void draw(){
+  stroke(0);
   for (int i=0; i<points.size(); i++){
-    stroke(0);
     Point pt = points.get(i);
-    if (hull.contains(pt)){
-      stroke(255,0,0);
-    }
-    circle(pt.x, pt.y, 10);
+    circle(pt.x, 600-pt.y, 5);
   }
+  stroke(255, 0, 0);
+  noFill();
+  
+  Point hl = hull.get(0);
+  circle(hl.x, 600-hl.y, 10);
+  Point last_hl = hl;
+  
+  for (int i=1; i<hull.size(); i++){
+    hl = hull.get(i);
+    circle(hl.x, 600-hl.y, 10);
+    line(last_hl.x, 600-last_hl.y, hl.x, 600-hl.y);
+    last_hl = hl;
+  }
+  
+  hl = hull.get(0);
+  line(last_hl.x, 600-last_hl.y, hl.x, 600-hl.y);
 }
 
 float scaleToScreen(){
