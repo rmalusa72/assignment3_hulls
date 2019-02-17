@@ -107,6 +107,33 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
   return hull;
 }
 
+ArrayList<Point> grahamScan(ArrayList<Point> input){
+  
+  float min_y = 0;
+  Point lowest_point = input.get(0);
+  Point pt;
+  
+  // Find rightmost bottom point
+  for(int i=1; i<input.size(); i++){
+    pt = input.get(i);
+    if (pt.y < min_y){
+      lowest_point = pt;
+      min_y = pt.y;
+    } else if (pt.y == min_y){
+      if (pt.x > lowest_point.x){
+        lowest_point = pt;
+        min_y = pt.y;
+      }
+    }
+  }
+ 
+  // calculate angles with all other points and sort, getting rid of any points that lie on another ray
+  // iterate through checking angle at each step
+  // et voila 
+  
+  return new ArrayList<Point>();
+}
+
 ArrayList<Point> generatePoints(float maxx, float maxy, int num_points){
   ArrayList<Point> rtn = new ArrayList<Point>();
   for (int i=0; i<num_points; i++){
