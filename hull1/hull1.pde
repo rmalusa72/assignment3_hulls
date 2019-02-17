@@ -10,8 +10,32 @@ void setup(){
   background(255);
   noLoop();
   
+  ArrayList<Fraction> fs = new ArrayList<Fraction>();
+  fs.add(new Fraction(0.0, 100.0));
+  fs.add(new Fraction(100.0, 100.0));
+  fs.add(new Fraction(100.0, 141.42136));
+  fs.add(new Fraction(50.0, 111.8034));
+  fs.add(new Fraction(50.0, 70.71068));
+  
+  print(fs.get(1).compareTo(fs.get(2)));
+  
+  Collections.sort(fs, null);
+  
+  for (int i=0; i<fs.size(); i++){
+    println(fs.get(i)); 
+  }
+  
+  
+  
   // generate input points (by hand for now)
-  points = generatePoints(600, 600, 5);
+  //points = generatePoints(600, 600, 5);
+  points = new ArrayList<Point>();
+  points.add(new Point(100,100));
+  points.add(new Point(200, 200));
+  points.add(new Point(100, 200));
+  points.add(new Point(200, 100));
+  points.add(new Point(100, 150));
+  points.add(new Point(150, 150));
   
   /*
   // find hull points
@@ -39,7 +63,7 @@ void draw(){
   stroke(255, 0, 0);
   noFill();
   
-  /*
+  
   Point hl = hull.get(0);
   circle(hl.x, 600-hl.y, 10);
   Point last_hl = hl;
@@ -55,7 +79,7 @@ void draw(){
   
   hl = hull.get(0);
   line(last_hl.x, 600-last_hl.y, hl.x, 600-hl.y);
-  */
+
 }
 
 ArrayList<Point> naiveHull(ArrayList<Point> input_points){
@@ -152,11 +176,8 @@ ArrayList<Point> grahamScan(ArrayList<Point> input){
   System.out.println("lowest point:" + lowest_point);
   
   ArrayList<Point> angular_sorted = angularSort(input, lowest_point_index);
-  for (int i=0; i<angular_sorted.size(); i++){
-    System.out.println(angular_sorted.get(i)); 
-  }
   
-  return new ArrayList<Point>();
+  return angular_sorted;
 }
 
 ArrayList<Point> generatePoints(float maxx, float maxy, int num_points){
@@ -171,7 +192,7 @@ ArrayList<Point> generatePoints(float maxx, float maxy, int num_points){
 // Assuming anchor_index points to rightmost bottom point 
 ArrayList<Point> angularSort(ArrayList<Point> input, int anchor_index){
   ArrayList<PointWithArccos> to_be_sorted = new ArrayList<PointWithArccos>();
-  
+  Point anchor = input.get(anchor_index);
   // for each point, find the angle its ray with anchor makes with x axis
   // angles range from 0 to 180, so cosine is monotonically decreasing? so we don't actually have to take arc cosine
   // cos (theta) = u dot v / (|u| * |v|)
@@ -181,13 +202,17 @@ ArrayList<Point> angularSort(ArrayList<Point> input, int anchor_index){
     if (i != anchor_index){
       
       Point pt = input.get(i);
-      to_be_sorted.add(new PointWithArccos(pt, new Fraction(pt.y, (float)distance(new Point(0,0), pt))));
+      to_be_sorted.add(new PointWithArccos(pt, new Fraction(pt.y - anchor.y, (float)distance(anchor, pt))));
       
     }
   }
   
   // Sort points by corresponding arccos
   Collections.sort(to_be_sorted, new SortByAngle());
+  println("theoretically sorted by angle:");
+  for (int i=0; i<to_be_sorted.size(); i++){
+    println(to_be_sorted.get(i)); 
+  }
   
   // Iterate through and remove doubles (which will be next to each other)
   ArrayList<Point> sorted = new ArrayList<Point>();
@@ -227,7 +252,7 @@ int sideCheck(Point a, Point b, Point c){
 }
 
 double distance(Point a, Point b){
-  return Math.pow((double)(a.x - b.x),2) + Math.pow((double)(a.y - b.y), 2);
+  return Math.sqrt(Math.pow((double)(a.x - b.x),2) + Math.pow((double)(a.y - b.y), 2));
 }
 
 class Point{
@@ -260,6 +285,11 @@ class PointWithArccos{
     pt = _pt;
     arccos = _arccos;
   }
+  
+  @Override
+  public String toString(){
+    return this.pt + " " + this.arccos; 
+  }
 }
 
 class SortByAngle implements Comparator<PointWithArccos>{
@@ -285,8 +315,9 @@ class Fraction implements Comparable<Fraction>{
     d = denominator;
   }
   
+  @Override
   public int compareTo(Fraction f){
-    if(this.n * f.d == this.d*f.n){
+    if(this.n/this.d == f.n/f.d){
       return 0; 
     } else {
       if (this.n/this.d < f.n/f.d){
@@ -295,6 +326,11 @@ class Fraction implements Comparable<Fraction>{
         return 1; 
       }
     }
+  }
+  
+  @Override
+  public String toString(){
+    return this.n + "/" + this.d + ": " + (this.n/this.d); 
   }
   
   @Override
