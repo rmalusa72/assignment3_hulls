@@ -2,40 +2,24 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 
-ArrayList<Point> points = new ArrayList<Point>();
-ArrayList<Point> hull = new ArrayList<Point>();
+ArrayList<Point> points;
+ArrayList<Point> hull;
 
 void setup(){
   surface.setSize(600,600);
   background(255);
   noLoop();
   
-  ArrayList<Fraction> fs = new ArrayList<Fraction>();
-  fs.add(new Fraction(0.0, 100.0));
-  fs.add(new Fraction(100.0, 100.0));
-  fs.add(new Fraction(100.0, 141.42136));
-  fs.add(new Fraction(50.0, 111.8034));
-  fs.add(new Fraction(50.0, 70.71068));
-  
-  print(fs.get(1).compareTo(fs.get(2)));
-  
-  Collections.sort(fs, null);
-  
-  for (int i=0; i<fs.size(); i++){
-    println(fs.get(i)); 
-  }
-  
-  
-  
   // generate input points (by hand for now)
-  //points = generatePoints(600, 600, 5);
+  //points = generatePoints(600, 600, 10);
+  
   points = new ArrayList<Point>();
   points.add(new Point(100,100));
+  points.add(new Point(150, 150));
   points.add(new Point(200, 200));
   points.add(new Point(100, 200));
   points.add(new Point(200, 100));
   points.add(new Point(100, 150));
-  points.add(new Point(150, 150));
   
   /*
   // find hull points
@@ -46,11 +30,7 @@ void setup(){
   */
   
   print("Points:");
-  for(int i=0; i<points.size(); i++){
-    System.out.println(points.get(i)); 
-  }
   hull = grahamScan(points);
-  
 
 }
 
@@ -196,13 +176,13 @@ ArrayList<Point> angularSort(ArrayList<Point> input, int anchor_index){
   // for each point, find the angle its ray with anchor makes with x axis
   // angles range from 0 to 180, so cosine is monotonically decreasing? so we don't actually have to take arc cosine
   // cos (theta) = u dot v / (|u| * |v|)
-  // since our u is [1, 0], u dot v is v.y and |u|*|v| is |v|
+  // since our u is [1, 0], u dot v is v.x and |u|*|v| is |v|
   
   for (int i=0; i<input.size(); i++){
     if (i != anchor_index){
       
       Point pt = input.get(i);
-      to_be_sorted.add(new PointWithArccos(pt, new Fraction(pt.y - anchor.y, (float)distance(anchor, pt))));
+      to_be_sorted.add(new PointWithArccos(pt, new Fraction(pt.x - anchor.x, (float)distance(anchor, pt))));
       
     }
   }
@@ -223,6 +203,11 @@ ArrayList<Point> angularSort(ArrayList<Point> input, int anchor_index){
      if (!pt.arccos.equals(last_pt.arccos)){
        sorted.add(pt.pt);
        last_pt = pt;
+     } else {
+       // Keep whichever is further from anchor point
+       if (distance(anchor, pt.pt) > distance(anchor, last_pt.pt)){
+         sorted.set(sorted.size()-1, pt.pt);
+       }
      }
   }
   
