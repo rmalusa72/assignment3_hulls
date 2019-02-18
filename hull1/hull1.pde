@@ -2,64 +2,143 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 
+int WINDOW_SIZE = 600; 
+
 ArrayList<Point> points;
 ArrayList<Point> hull;
 
+// Input sets are generated in setup and saved,
+// so we can test both algorithms on the same set. 
+ArrayList<Point> nicePoints;
+ArrayList<Point> degeneratePoints;
+ArrayList<Point> linearPoints;
+ArrayList<Point> random1000;
+ArrayList<Point> random10000;
+ArrayList<Point> random1000000;
+
+// TODO: Organize/polish/comment/make names better
+// TODO: Make example sets larger
+// TODO: Run on BMC system
+// TODO: Implement fuzzy equals that actually works
+// TODO: make a random generator that's worse for graham scan
+
+
 void setup(){
-  surface.setSize(600,600);
-  background(255);
+  surface.setSize(WINDOW_SIZE, WINDOW_SIZE);
   noLoop();
   
-  // generate input points (by hand for now)
-  points = generatePoints(600, 600, 100);
+  // Input sets are generated in setup and saved,
+  // so we can test both algorithms on the same set. 
+  ArrayList<Point> nicePoints = new ArrayList<Point>();
+  nicePoints.add(new Point(10,10));
+  nicePoints.add(new Point(200, 200));
+  nicePoints.add(new Point(500, 50));
+  nicePoints.add(new Point(30, 400));
+  nicePoints.add(new Point(150, 150));
   
-  /*points = new ArrayList<Point>();
-  points.add(new Point(100,100));
-  points.add(new Point(150, 150));
-  points.add(new Point(200, 200));
-  points.add(new Point(100, 200));
-  points.add(new Point(200, 100));
-  points.add(new Point(100, 150));*/
+  ArrayList<Point> degeneratePoints = new ArrayList<Point>();
+  degeneratePoints.add(new Point(100,100));
+  degeneratePoints.add(new Point(150, 150));
+  degeneratePoints.add(new Point(200, 200));
+  degeneratePoints.add(new Point(100, 200));
+  degeneratePoints.add(new Point(200, 100));
+  degeneratePoints.add(new Point(100, 150));
+  
+  ArrayList<Point> linearPoints = new ArrayList<Point>();
+  linearPoints.add(new Point(100, 100));
+  linearPoints.add(new Point(100, 200));
+  linearPoints.add(new Point(100, 300));
+  linearPoints.add(new Point(100, 400));
+  
+  ArrayList<Point> random1000 = generatePoints(WINDOW_SIZE, WINDOW_SIZE, 1000);
+  ArrayList<Point> random10000 = generatePoints(WINDOW_SIZE, WINDOW_SIZE, 10000);
+  ArrayList<Point> random1000000 = generatePoints(WINDOW_SIZE, WINDOW_SIZE, 1000000);
+
+  points = nicePoints;
+  hull = naiveHull(points);
+  draw();
+  saveFrame("nice_points_naive.png");
+  hull = grahamScan(points);
+  draw();
+  saveFrame("nice_points_graham.png");
+  
+  points = degeneratePoints;
+  hull = naiveHull(points);
+  draw();
+  saveFrame("degenerate_points_naive.png");
+  hull = grahamScan(points);
+  draw();
+  saveFrame("degenerate_points_graham.png");
+  
+  points = linearPoints;
+  hull = naiveHull(points);
+  draw();
+  saveFrame("linear_points_naive.png");
+  hull = grahamScan(points);
+  draw();
+  saveFrame("linear_points_graham.png");
+  
+  points = random1000;
+  int naiveStart = millis();
+  hull = naiveHull(points);
+  int naiveEnd = millis();
+  println("Naive algorithm on 1000 points: " + (naiveEnd-naiveStart) + " milliseconds");
+  int grahamStart = millis();
+  hull = grahamScan(points);
+  int grahamEnd = millis();
+  println("Graham scan algorithm on 1000 points: " + (grahamEnd-grahamStart) + " milliseconds");
+  
+  // Compress into above? 
+  points = random10000;
+  naiveStart = millis();
+  hull = naiveHull(points);
+  naiveEnd = millis();
+  println("Naive algorithm on 10000 points: " + (naiveEnd-naiveStart) + " milliseconds");
+  grahamStart = millis();
+  hull = grahamScan(points);
+  grahamEnd = millis();
+  println("Graham scan algorithm on 10000 points: " + (grahamEnd-grahamStart) + " milliseconds");
   
   /*
-  // find hull points
+  // Compress into above? 
+  points = random1000000;
+  naiveStart = millis();
   hull = naiveHull(points);
-  for (int i=0; i<hull.size(); i++){
-    System.out.println(hull.get(i)); 
-  }
-  */
-  
-  print("Points:");
+  naiveEnd = millis();
+  println("Naive algorithm on 1000000 points: " + (naiveEnd-naiveStart) + " milliseconds");
+  grahamStart = millis();
   hull = grahamScan(points);
+  grahamEnd = millis();
+  println("Graham scan algorithm on 1000000 points: " + (grahamEnd-grahamStart) + " milliseconds");
+  */
 
 }
 
 void draw(){
+  clear();
+  background(255);
   stroke(0);
+  
   for (int i=0; i<points.size(); i++){
     Point pt = points.get(i);
     circle(pt.x, 600-pt.y, 5);
   }
+  
   stroke(255, 0, 0);
   noFill();
-  
   
   Point hl = hull.get(0);
   circle(hl.x, 600-hl.y, 10);
   Point last_hl = hl;
-  
   for (int i=1; i<hull.size(); i++){
     hl = hull.get(i);
     circle(hl.x, 600-hl.y, 10);
     line(last_hl.x, 600-last_hl.y, hl.x, 600-hl.y);
     last_hl = hl;
-    
-    
   }
   
   hl = hull.get(0);
   line(last_hl.x, 600-last_hl.y, hl.x, 600-hl.y);
-
 }
 
 ArrayList<Point> naiveHull(ArrayList<Point> input_points){
@@ -151,9 +230,6 @@ ArrayList<Point> grahamScan(ArrayList<Point> input){
   }
  
   // calculate angles with all other points and sort, getting rid of any points that lie on another ray
-  
-  System.out.println("lowest point:" + anchor);
-  
   ArrayList<Point> angular_sorted = angularSort(input, anchor_index);
   
   // iterate through checking angle at each step
@@ -206,10 +282,6 @@ ArrayList<Point> angularSort(ArrayList<Point> input, int anchor_index){
   
   // Sort points by corresponding arccos
   Collections.sort(to_be_sorted, new SortByAngle());
-  println("theoretically sorted by angle:");
-  for (int i=0; i<to_be_sorted.size(); i++){
-    println(to_be_sorted.get(i)); 
-  }
   
   // Iterate through and remove doubles (which will be next to each other)
   ArrayList<Point> sorted = new ArrayList<Point>();
