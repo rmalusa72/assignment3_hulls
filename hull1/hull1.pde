@@ -11,15 +11,15 @@ void setup(){
   noLoop();
   
   // generate input points (by hand for now)
-  //points = generatePoints(600, 600, 10);
+  points = generatePoints(600, 600, 100);
   
-  points = new ArrayList<Point>();
+  /*points = new ArrayList<Point>();
   points.add(new Point(100,100));
   points.add(new Point(150, 150));
   points.add(new Point(200, 200));
   points.add(new Point(100, 200));
   points.add(new Point(200, 100));
-  points.add(new Point(100, 150));
+  points.add(new Point(100, 150));*/
   
   /*
   // find hull points
@@ -129,35 +129,52 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
 ArrayList<Point> grahamScan(ArrayList<Point> input){
   
   float min_y = input.get(0).y;
-  Point lowest_point = input.get(0);
-  int lowest_point_index = 0;
+  Point anchor = input.get(0);
+  int anchor_index = 0;
   Point pt;
+  ArrayList<Point> hull = new ArrayList<Point>();
   
   // Find rightmost bottom point
   for(int i=1; i<input.size(); i++){
     pt = input.get(i);
     if (pt.y < min_y){
-      lowest_point = pt;
+      anchor = pt;
       min_y = pt.y;
-      lowest_point_index = i;
+      anchor_index = i;
     } else if (pt.y == min_y){
-      if (pt.x > lowest_point.x){
-        lowest_point = pt;
+      if (pt.x > anchor.x){
+        anchor = pt;
         min_y = pt.y;
-        lowest_point_index = i;
+        anchor_index = i;
       }
     }
   }
  
   // calculate angles with all other points and sort, getting rid of any points that lie on another ray
+  
+  System.out.println("lowest point:" + anchor);
+  
+  ArrayList<Point> angular_sorted = angularSort(input, anchor_index);
+  
   // iterate through checking angle at each step
-  // et voila 
+  hull.add(anchor);
+  hull.add(angular_sorted.get(0));
+  Point next_point;
   
-  System.out.println("lowest point:" + lowest_point);
+  int i=1; 
+  while (i < angular_sorted.size()){
+    next_point = angular_sorted.get(i);
+    int side = sideCheck(hull.get(hull.size()-2), hull.get(hull.size()-1), next_point);
+    if (side == -1){
+      // Legal left turn is formed
+      hull.add(next_point);
+      i += 1;
+    } else {
+      hull.remove(hull.size()-1);
+    }
+  }
   
-  ArrayList<Point> angular_sorted = angularSort(input, lowest_point_index);
-  
-  return angular_sorted;
+  return hull;
 }
 
 ArrayList<Point> generatePoints(float maxx, float maxy, int num_points){
