@@ -3,6 +3,9 @@ import java.util.Comparator;
 import java.util.Collections;
 
 int WINDOW_SIZE = 600; 
+int LEFT_OF_LINE = -1;
+int ON_LINE = 0;
+int RIGHT_OF_LINE = 1;
 
 ArrayList<Point> points;
 ArrayList<Point> hull;
@@ -16,17 +19,18 @@ ArrayList<Point> random1000;
 ArrayList<Point> random10000;
 ArrayList<Point> random1000000;
 
-// TODO: Organize/polish/comment/make names better
 // TODO: Make example sets larger
 // TODO: Run on BMC system
 // TODO: Implement fuzzy equals that actually works
 // TODO: make a random generator that's worse for graham scan
-
+// TODO: print hull points in small test cases
 
 void setup(){
   surface.setSize(WINDOW_SIZE, WINDOW_SIZE);
   noLoop();
-  
+}
+
+void draw(){
   // Input sets are generated in setup and saved,
   // so we can test both algorithms on the same set. 
   ArrayList<Point> nicePoints = new ArrayList<Point>();
@@ -56,26 +60,32 @@ void setup(){
 
   points = nicePoints;
   hull = naiveHull(points);
-  draw();
+  println(hull);
+  drawPoints();
   saveFrame("nice_points_naive.png");
   hull = grahamScan(points);
-  draw();
+  println(hull);
+  drawPoints();
   saveFrame("nice_points_graham.png");
   
   points = degeneratePoints;
   hull = naiveHull(points);
-  draw();
+  println(hull);
+  drawPoints();
   saveFrame("degenerate_points_naive.png");
   hull = grahamScan(points);
-  draw();
+  println(hull);
+  drawPoints();
   saveFrame("degenerate_points_graham.png");
   
   points = linearPoints;
   hull = naiveHull(points);
-  draw();
+  println(hull);
+  drawPoints();
   saveFrame("linear_points_naive.png");
   hull = grahamScan(points);
-  draw();
+  println(hull);
+  drawPoints();
   saveFrame("linear_points_graham.png");
   
   points = random1000;
@@ -111,37 +121,37 @@ void setup(){
   grahamEnd = millis();
   println("Graham scan algorithm on 1000000 points: " + (grahamEnd-grahamStart) + " milliseconds");
   */
-
 }
 
-void draw(){
+void drawPoints(){
   clear();
   background(255);
-  stroke(0);
   
+  // Draw all points
+  stroke(0);
   for (int i=0; i<points.size(); i++){
     Point pt = points.get(i);
     circle(pt.x, 600-pt.y, 5);
   }
   
+  // Circle hull points and draw lines between them
   stroke(255, 0, 0);
   noFill();
-  
-  Point hl = hull.get(0);
-  circle(hl.x, 600-hl.y, 10);
-  Point last_hl = hl;
-  for (int i=1; i<hull.size(); i++){
-    hl = hull.get(i);
-    circle(hl.x, 600-hl.y, 10);
-    line(last_hl.x, 600-last_hl.y, hl.x, 600-hl.y);
-    last_hl = hl;
+  Point hull_point;
+  Point last_point = hull.get(0);
+  for (int i=0; i<hull.size(); i++){
+    hull_point = hull.get(i);
+    circle(hull_point.x, 600-hull_point.y, 10);
+    line(last_point.x, 600-last_point.y, hull_point.x, 600-hull_point.y);
+    last_point = hull_point; 
   }
   
-  hl = hull.get(0);
-  line(last_hl.x, 600-last_hl.y, hl.x, 600-hl.y);
+  hull_point = hull.get(0);
+  line(last_point.x, 600-last_point.y, hull_point.x, 600-hull_point.y);
 }
 
 ArrayList<Point> naiveHull(ArrayList<Point> input_points){
+  
   ArrayList<PointPair> hull_pairs = new ArrayList<PointPair>();
   Point a, b, c;
   
@@ -150,45 +160,40 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
     for (int j=0; j<input_points.size(); j++){
       if (i != j){
         b = input_points.get(j);
-
-        // a, b will iterate through every pair of distinct points
         boolean onHull = true;
-        
         for (int k=0; k<input_points.size(); k++){
           if (k!=i && k!=j){
             c = input_points.get(k);
-            
             int side = sideCheck(a,b,c);
-            if (side == -1){
-              // c is to the left of ab
+            if (side == LEFT_OF_LINE){
+              // c is to the left of ab, so ab is not a valid hull pair and we need not examine more points
               onHull = false;
               break;
-            } else if (side == 0){
-              // c is on ab
-              // figure out which one is in the middle. if c isn't in the middle, pair is not valid
+            } else if (side == ON_LINE){
+              // ac is parallel to ab; if c is between a and b, ab could still be valid, otherwise not
               double ab_distance = distance(a,b);
               double bc_distance = distance(b,c);
               double ac_distance = distance(a,c);
-              
               if (ab_distance < ac_distance || ab_distance < bc_distance){
                 onHull = false;
                 break;
               }
-              
             }
-            
           }
         }
         
+        // If all other points were on or to the right of ab, a and b are on the hull (in that order)
         if (onHull){
           hull_pairs.add(new PointPair(a,b));
         }
-        
       }
     }
   }
   
-  // Process hullpair to put in order, remove duplicates
+  // Process hull pairs to join disordered pairs into a single sequence
+  // We start with an arbitrary pair of points (the first), then at each
+  // step, we search for the pair that begins with the point that is 
+  // currently last in our list of hull points, to "hook" pairs together.
   ArrayList<Point> hull = new ArrayList<Point>();
   hull.add(hull_pairs.get(0).first);
   hull.add(hull_pairs.get(0).second);
@@ -201,55 +206,46 @@ ArrayList<Point> naiveHull(ArrayList<Point> input_points){
       }
     }
   }
-  
   return hull;
 }
 
 ArrayList<Point> grahamScan(ArrayList<Point> input){
   
-  float min_y = input.get(0).y;
-  Point anchor = input.get(0);
+  // Find rightmost bottom point (the "anchor" of the angular sort)
   int anchor_index = 0;
-  Point pt;
-  ArrayList<Point> hull = new ArrayList<Point>();
+  Point anchor = input.get(0);
+  Point pt; 
   
-  // Find rightmost bottom point
-  for(int i=1; i<input.size(); i++){
+  for (int i=1; i<input.size(); i++){
     pt = input.get(i);
-    if (pt.y < min_y){
-      anchor = pt;
-      min_y = pt.y;
+    if (pt.y < anchor.y || (pt.y == anchor.y && pt.x > anchor.x)){
       anchor_index = i;
-    } else if (pt.y == min_y){
-      if (pt.x > anchor.x){
-        anchor = pt;
-        min_y = pt.y;
-        anchor_index = i;
-      }
+      anchor = pt;
     }
   }
- 
-  // calculate angles with all other points and sort, getting rid of any points that lie on another ray
+
+  // Angular sort orders points by angle and deletes points that lie on another ray
   ArrayList<Point> angular_sorted = angularSort(input, anchor_index);
   
-  // iterate through checking angle at each step
+  // Add first two points, then iterate through adding points and checking angle
+  ArrayList<Point> hull = new ArrayList<Point>();
   hull.add(anchor);
   hull.add(angular_sorted.get(0));
-  Point next_point;
+  Point nextPoint;
   
   int i=1; 
   while (i < angular_sorted.size()){
-    next_point = angular_sorted.get(i);
-    int side = sideCheck(hull.get(hull.size()-2), hull.get(hull.size()-1), next_point);
-    if (side == -1){
+    nextPoint = angular_sorted.get(i);
+    int side = sideCheck(hull.get(hull.size()-2), hull.get(hull.size()-1), nextPoint);
+    if (side == LEFT_OF_LINE){
       // Legal left turn is formed
-      hull.add(next_point);
+      hull.add(nextPoint);
       i += 1;
     } else {
+      // Right turn is formed, remove last point
       hull.remove(hull.size()-1);
     }
   }
-  
   return hull;
 }
 
@@ -261,67 +257,68 @@ ArrayList<Point> generatePoints(float maxx, float maxy, int num_points){
   return rtn;
 }
 
-// Angular sort with deletion of points that are on rays
-// Assuming anchor_index points to rightmost bottom point 
+// Angular sort with deletion of points that are on rays,
+// where anchor_index points to the rightmost bottom point
+// that is used to sort
 ArrayList<Point> angularSort(ArrayList<Point> input, int anchor_index){
-  ArrayList<PointWithArccos> to_be_sorted = new ArrayList<PointWithArccos>();
+  ArrayList<PointWithCos> pointAnglePairs = new ArrayList<PointWithCos>();
   Point anchor = input.get(anchor_index);
-  // for each point, find the angle its ray with anchor makes with x axis
-  // angles range from 0 to 180, so cosine is monotonically decreasing? so we don't actually have to take arc cosine
+  
+  // we want to sort by the angle that the ray between each 
+  // point and the anchor point makes with the x axis; these angles range
+  // from 0 to 180 degrees, so we can use just the cosine values, knowing
+  // that they are monotonically decreasing for this range
+  
   // cos (theta) = u dot v / (|u| * |v|)
   // since our u is [1, 0], u dot v is v.x and |u|*|v| is |v|
-  
   for (int i=0; i<input.size(); i++){
     if (i != anchor_index){
-      
       Point pt = input.get(i);
-      to_be_sorted.add(new PointWithArccos(pt, new Fraction(pt.x - anchor.x, (float)distance(anchor, pt))));
-      
+      pointAnglePairs.add(new PointWithCos(pt, new Fraction(pt.x - anchor.x, (float)distance(anchor, pt))));
     }
   }
   
-  // Sort points by corresponding arccos
-  Collections.sort(to_be_sorted, new SortByAngle());
+  // Sort points by corresponding cosine
+  Collections.sort(pointAnglePairs, new SortByCosine());
   
-  // Iterate through and remove doubles (which will be next to each other)
+  // Iterate through and remove doubles (which will be next to each other), and discard angles
   ArrayList<Point> sorted = new ArrayList<Point>();
-  sorted.add(to_be_sorted.get(0).pt);
-  PointWithArccos last_pt = to_be_sorted.get(0);
-  for (int i=1; i<to_be_sorted.size(); i++){
-     PointWithArccos pt = to_be_sorted.get(i);
-     if (!pt.arccos.equals(last_pt.arccos)){
-       sorted.add(pt.pt);
-       last_pt = pt;
-     } else {
-       // Keep whichever is further from anchor point
-       if (distance(anchor, pt.pt) > distance(anchor, last_pt.pt)){
-         sorted.set(sorted.size()-1, pt.pt);
-       }
-     }
+  PointWithCos lastPoint = pointAnglePairs.get(0);
+  sorted.add(pointAnglePairs.get(0).pt);
+  
+  for (int i=1; i<pointAnglePairs.size(); i++){
+    PointWithCos nextPoint = pointAnglePairs.get(i);
+    if(!nextPoint.cosine.equals(lastPoint.cosine)){
+      sorted.add(nextPoint.pt);
+      lastPoint = nextPoint;
+    } else {
+      // Keep whichever is further from anchor point
+      if (distance(anchor, nextPoint.pt) > distance(anchor, lastPoint.pt)){
+        sorted.set(sorted.size()-1, nextPoint.pt);
+      }
+    }
   }
   
   // Return sorted list 
   return sorted;
 }
 
-// Returns 1 if c is to the right of ab, 0 if c is on ab, -1 otherwise
+// Checks position of c with respect to ab and returns LEFT_OF_LINE, ON_LINE or RIGHT_OF_LINE
 int sideCheck(Point a, Point b, Point c){
   
   // We want the coefficient of i in the cross product of vectors ab and ac
   // (The other two coefficients should be zero, and the sign of this one gives the side)
-  
   // ab = [b.x - a.x, b.y - a.y]
   // ac = [c.x - a.x, c.y - a.y]
-  
-  // we want ab.x * ac.y - ab.y * ac.x
+  // so we want ab.x * ac.y - ab.y * ac.x
   
   float i_coefficient = (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
   if (i_coefficient > 0){
-    return 1;
+    return RIGHT_OF_LINE;
   } else if (i_coefficient == 0){
-    return 0;
+    return ON_LINE;
   } else {
-    return -1;
+    return LEFT_OF_LINE;
   }
 }
 
@@ -351,24 +348,24 @@ class Point{
   }
 }
 
-class PointWithArccos{
+class PointWithCos{
   Point pt; 
-  Fraction arccos;
+  Fraction cosine;
   
-  public PointWithArccos(Point _pt, Fraction _arccos){
+  public PointWithCos(Point _pt, Fraction _cosine){
     pt = _pt;
-    arccos = _arccos;
+    cosine = _cosine;
   }
   
   @Override
   public String toString(){
-    return this.pt + " " + this.arccos; 
+    return this.pt + " " + this.cosine; 
   }
 }
 
-class SortByAngle implements Comparator<PointWithArccos>{
-  int compare(PointWithArccos p1, PointWithArccos p2){
-    return p1.arccos.compareTo(p2.arccos);
+class SortByCosine implements Comparator<PointWithCos>{
+  int compare(PointWithCos p1, PointWithCos p2){
+    return p1.cosine.compareTo(p2.cosine);
   }
 }
 
@@ -391,7 +388,7 @@ class Fraction implements Comparable<Fraction>{
   
   @Override
   public int compareTo(Fraction f){
-    if(this.n/this.d == f.n/f.d){
+    if(this.n*f.d == f.n*this.d){
       return 0; 
     } else {
       if (this.n/this.d < f.n/f.d){
