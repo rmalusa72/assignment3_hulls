@@ -10,29 +10,12 @@ int RIGHT_OF_LINE = 1;
 ArrayList<Point> points;
 ArrayList<Point> hull;
 
-// Input sets are generated in setup and saved,
-// so we can test both algorithms on the same set. 
-ArrayList<Point> nicePoints;
-ArrayList<Point> degeneratePoints;
-ArrayList<Point> linearPoints;
-ArrayList<Point> random1000;
-ArrayList<Point> random10000;
-ArrayList<Point> random1000000;
-
-// TODO: Make example sets larger
-// TODO: Run on BMC system
-// TODO: Implement fuzzy equals that actually works
-// TODO: make a random generator that's worse for graham scan
-// TODO: print hull points in small test cases
-
 void setup(){
   surface.setSize(WINDOW_SIZE, WINDOW_SIZE);
   noLoop();
 }
 
 void draw(){
-  // Input sets are generated in setup and saved,
-  // so we can test both algorithms on the same set. 
   ArrayList<Point> nicePoints = new ArrayList<Point>();
   nicePoints.add(new Point(10,10));
   nicePoints.add(new Point(200, 200));
@@ -40,13 +23,13 @@ void draw(){
   nicePoints.add(new Point(30, 400));
   nicePoints.add(new Point(150, 150));
   
-  ArrayList<Point> degeneratePoints = new ArrayList<Point>();
-  degeneratePoints.add(new Point(100,100));
-  degeneratePoints.add(new Point(150, 150));
-  degeneratePoints.add(new Point(200, 200));
-  degeneratePoints.add(new Point(100, 200));
-  degeneratePoints.add(new Point(200, 100));
-  degeneratePoints.add(new Point(100, 150));
+  ArrayList<Point> collinearityPoints = new ArrayList<Point>();
+  collinearityPoints.add(new Point(100,100));
+  collinearityPoints.add(new Point(150, 150));
+  collinearityPoints.add(new Point(200, 200));
+  collinearityPoints.add(new Point(100, 200));
+  collinearityPoints.add(new Point(200, 100));
+  collinearityPoints.add(new Point(100, 150));
   
   ArrayList<Point> linearPoints = new ArrayList<Point>();
   linearPoints.add(new Point(100, 100));
@@ -54,9 +37,11 @@ void draw(){
   linearPoints.add(new Point(100, 300));
   linearPoints.add(new Point(100, 400));
   
-  ArrayList<Point> random1000 = generatePoints(WINDOW_SIZE, WINDOW_SIZE, 1000);
-  ArrayList<Point> random10000 = generatePoints(WINDOW_SIZE, WINDOW_SIZE, 10000);
-  ArrayList<Point> random1000000 = generatePoints(WINDOW_SIZE, WINDOW_SIZE, 1000000);
+  ArrayList<Point> nearCircularPoints = generatePoints(300, 300, 200, 20);
+  
+  ArrayList<Point> random1000 = generatePoints(300, 300, 200, 1000);
+  ArrayList<Point> random10000 = generatePoints(300, 300, 200, 10000);
+  ArrayList<Point> random1000000 = generatePoints(300, 300, 200, 1000000);
 
   points = nicePoints;
   hull = naiveHull(points);
@@ -68,7 +53,7 @@ void draw(){
   drawPoints();
   saveFrame("nice_points_graham.png");
   
-  points = degeneratePoints;
+  points = collinearityPoints;
   hull = naiveHull(points);
   println(hull);
   drawPoints();
@@ -88,17 +73,28 @@ void draw(){
   drawPoints();
   saveFrame("linear_points_graham.png");
   
+  points = nearCircularPoints;
+  hull = naiveHull(points);
+  println(hull);
+  drawPoints();
+  saveFrame("circular_points_naive.png");
+  hull = grahamScan(points);
+  println(hull);
+  drawPoints();
+  saveFrame("circular_points_graham.png");
+  
   points = random1000;
   int naiveStart = millis();
   hull = naiveHull(points);
   int naiveEnd = millis();
+  drawPoints();
+  saveFrame("thousand_points.png");
   println("Naive algorithm on 1000 points: " + (naiveEnd-naiveStart) + " milliseconds");
   int grahamStart = millis();
   hull = grahamScan(points);
   int grahamEnd = millis();
   println("Graham scan algorithm on 1000 points: " + (grahamEnd-grahamStart) + " milliseconds");
   
-  // Compress into above? 
   points = random10000;
   naiveStart = millis();
   hull = naiveHull(points);
@@ -109,8 +105,6 @@ void draw(){
   grahamEnd = millis();
   println("Graham scan algorithm on 10000 points: " + (grahamEnd-grahamStart) + " milliseconds");
   
-  /*
-  // Compress into above? 
   points = random1000000;
   naiveStart = millis();
   hull = naiveHull(points);
@@ -120,7 +114,6 @@ void draw(){
   hull = grahamScan(points);
   grahamEnd = millis();
   println("Graham scan algorithm on 1000000 points: " + (grahamEnd-grahamStart) + " milliseconds");
-  */
 }
 
 void drawPoints(){
@@ -249,10 +242,12 @@ ArrayList<Point> grahamScan(ArrayList<Point> input){
   return hull;
 }
 
-ArrayList<Point> generatePoints(float maxx, float maxy, int num_points){
+ArrayList<Point> generatePoints(float center_x, float center_y, float radius, int num_points){
   ArrayList<Point> rtn = new ArrayList<Point>();
+  float angle;
   for (int i=0; i<num_points; i++){
-    rtn.add(new Point(random(maxx), random(maxy)));
+    angle = random(0, 360);
+    rtn.add(new Point(center_x + cos(angle)*radius, center_y + sin(angle)*radius));
   }
   return rtn;
 }
@@ -326,6 +321,18 @@ double distance(Point a, Point b){
   return Math.sqrt(Math.pow((double)(a.x - b.x),2) + Math.pow((double)(a.y - b.y), 2));
 }
 
+boolean fuzzyEquals(float a, float b){
+  if (a==b){
+    return true; 
+  } else if (a < b && a + 0.00000001 > b){
+    return true;
+  } else if (b < a && b + 0.00000001 > a){
+    return true;
+  }
+  return false;
+  
+}
+
 class Point{
   public float x, y;
   
@@ -388,7 +395,7 @@ class Fraction implements Comparable<Fraction>{
   
   @Override
   public int compareTo(Fraction f){
-    if(this.n*f.d == f.n*this.d){
+    if(fuzzyEquals(this.n*f.d, f.n*this.d)){
       return 0; 
     } else {
       if (this.n/this.d < f.n/f.d){
