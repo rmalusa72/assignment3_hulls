@@ -106,14 +106,15 @@ void draw(){
   println("Graham scan algorithm on 10000 points: " + (grahamEnd-grahamStart) + " milliseconds");
   
   points = random1000000;
-  naiveStart = millis();
-  hull = naiveHull(points);
-  naiveEnd = millis();
-  println("Naive algorithm on 1000000 points: " + (naiveEnd-naiveStart) + " milliseconds");
   grahamStart = millis();
   hull = grahamScan(points);
   grahamEnd = millis();
   println("Graham scan algorithm on 1000000 points: " + (grahamEnd-grahamStart) + " milliseconds");
+  naiveStart = millis();
+  hull = naiveHull(points);
+  naiveEnd = millis();
+  println("Naive algorithm on 1000000 points: " + (naiveEnd-naiveStart) + " milliseconds");
+
 }
 
 void drawPoints(){
