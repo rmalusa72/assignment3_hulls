@@ -2,6 +2,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 
+// 1. do we have time to run the million points case for naive algorithm?
+// 2. working without fuzzy equals. does that mean my test cases are insufficiently weird?
+
 int WINDOW_SIZE = 600; 
 int LEFT_OF_LINE = -1;
 int ON_LINE = 0;
@@ -29,6 +32,9 @@ void draw(){
   collinearityPoints.add(new Point(200, 200));
   collinearityPoints.add(new Point(100, 200));
   collinearityPoints.add(new Point(200, 100));
+  collinearityPoints.add(new Point(250, 120));
+  collinearityPoints.add(new Point(300, 140));
+  collinearityPoints.add(new Point(250, 170));
   collinearityPoints.add(new Point(100, 150));
   
   ArrayList<Point> linearPoints = new ArrayList<Point>();
@@ -87,8 +93,6 @@ void draw(){
   int naiveStart = millis();
   hull = naiveHull(points);
   int naiveEnd = millis();
-  drawPoints();
-  saveFrame("thousand_points.png");
   println("Naive algorithm on 1000 points: " + (naiveEnd-naiveStart) + " milliseconds");
   int grahamStart = millis();
   hull = grahamScan(points);
@@ -110,11 +114,10 @@ void draw(){
   hull = grahamScan(points);
   grahamEnd = millis();
   println("Graham scan algorithm on 1000000 points: " + (grahamEnd-grahamStart) + " milliseconds");
-  naiveStart = millis();
+  /*naiveStart = millis();
   hull = naiveHull(points);
   naiveEnd = millis();
-  println("Naive algorithm on 1000000 points: " + (naiveEnd-naiveStart) + " milliseconds");
-
+  println("Naive algorithm on 1000000 points: " + (naiveEnd-naiveStart) + " milliseconds");*/
 }
 
 void drawPoints(){
@@ -322,17 +325,21 @@ double distance(Point a, Point b){
   return Math.sqrt(Math.pow((double)(a.x - b.x),2) + Math.pow((double)(a.y - b.y), 2));
 }
 
-boolean fuzzyEquals(float a, float b){
-  if (a==b){
+/*
+boolean fuzzyEquals(Fraction a, Fraction b){
+  float left = a.n*b.d;
+  float right = a.d*b.n;
+  if (left==right){
     return true; 
-  } else if (a < b && a + 0.00000001 > b){
+  } else if (left < right && left + 0.00000001 > right){
     return true;
-  } else if (b < a && b + 0.00000001 > a){
+  } else if (right < left && right + 0.00000001 > left){
     return true;
   }
   return false;
   
 }
+*/
 
 class Point{
   public float x, y;
@@ -396,8 +403,8 @@ class Fraction implements Comparable<Fraction>{
   
   @Override
   public int compareTo(Fraction f){
-    if(fuzzyEquals(this.n*f.d, f.n*this.d)){
-      return 0; 
+    if(this.n/this.d == f.n/f.d){ // WAS throwing "java.lang.IllegalArgumentException: Comparison method violates its general contract!" when i was multiplying sides instead. this works but seems worse???
+     return 0; 
     } else {
       if (this.n/this.d < f.n/f.d){
         return -1; 
